@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>My first PHP Website</title>
+        <style>
+            canvas {
+                width: 100vw;
+                height: 100vh;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas" width="720" height="1280">
+
+        </canvas>
+
+        <script id="vertex-data" type="not-javascript">
+            attribute vec4 vertex_points;
+
+            void main() {
+                gl_Position = vertex_points;
+            }
+        </script>
+
+        <script id="fragment-data" type="not-javascript">
+            precision mediump float;
+
+            void main() {
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            }
+        </script> 
+    </body>
+
+    <script type="text/javascript">
+        const canvas = document.getElementById("canvas");
+        const glContext = canvas.getContext("webgl");
+
+        if (!glContext) {
+            console.log("webgl is unavailable");
+        }
+        else {
+
+            console.log("webgl is good to go!");  
+
+            const vsSource = document.querySelector("#vertex-data").text;
+            const fsSource = document.querySelector("#fragment-data").text;
+            const vertexShader = glContext.createShader(glContext.VERTEX_SHADER);
+            glContext.shaderSource(vertexShader, vsSource);
+            glContext.compileShader(vertexShader);
+    
+            const fragmentShader = glContext.createShader(glContext.FRAGMENT_SHADER);
+            glContext.shaderSource(fragmentShader, fsSource);
+            glContext.compileShader(fragmentShader);
+    
+            const program = glContext.createProgram();
+            glContext.attachShader(program, vertexShader);
+            glContext.attachShader(program, fragmentShader);
+            glContext.linkProgram(program);
+            glContext.useProgram(program);
+            
+            const coordinates = [
+                //x , y coordinates
+                -0.7, 0.7,
+                0.7, 0.7,
+                -0.7, 0,
+                0.7, 0
+            ];
+
+            console.log(glContext.drawingBufferWidth);
+            console.log(glContext.drawingBufferHeight);
+
+
+    
+            const pointsBuffer = glContext.createBuffer();
+            glContext.bindBuffer(glContext.ARRAY_BUFFER, pointsBuffer);
+    
+            glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(coordinates), glContext.STATIC_DRAW);
+    
+            const pointsAttributateLocation = glContext.getAttribLocation(program, "vertex_points");
+            glContext.vertexAttribPointer(pointsAttributateLocation, 2, glContext.FLOAT, false, 0, 0);
+            glContext.enableVertexAttribArray(pointsAttributateLocation);
+    
+            glContext.clearColor(0, 0, 0, 0);
+            glContext.clear(glContext.COLOR_BUFFER_BIT);
+    
+            const mode = glContext.TRIANGLE_STRIP;
+            const first = 0;
+            const count = 4;
+            glContext.drawArrays(mode, first, count);
+
+        }
+
+
+    </script>
+</html>
