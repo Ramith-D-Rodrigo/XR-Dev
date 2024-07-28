@@ -1,6 +1,7 @@
 
-main();
+window.mat4 = glMatrix.mat4;
 
+main();
 
 
 function main() {
@@ -83,10 +84,13 @@ function main() {
         attribute vec4 aPosition;
         attribute vec4 aVertexColor;
 
+        uniform mat4 uModelViewMatrix;
+        uniform mat4 uProjectionMatrix;
+
         varying lowp vec4 vColor;
 
         void main() {
-            gl_Position = aPosition;
+            gl_Position = uProjectionMatrix * uModelViewMatrix * aPosition;
             vColor = aVertexColor;
         }
     `;
@@ -130,27 +134,58 @@ function main() {
     gl.linkProgram(program);
     gl.useProgram(program);
 
-    /* Connect the attribute with the vertex shader */
-    const positionAttributeLocation = gl.getAttribLocation(program, "aPosition");
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(positionAttributeLocation);
+    let then = 0;
+    let cubeRotation = 0.0;
 
-    const colorAttributeLocation = gl.getAttribLocation(program, "aVertexColor");
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-    gl.vertexAttribPointer(colorAttributeLocation, 4, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(colorAttributeLocation);
+    function render(now) {
+        now *= 0.001; 
+        let deltaTime = now - then;
+        then = now;
 
-    /* Drawing */
-    gl.clearColor(1,1,1,1);
-    gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        const modelViewMatrix = mat4.create();
+        mat4.translate(modelViewMatrix, modelViewMatrix, [-0.0, 0.0, -6.0]);
 
-    /* Draw the points to the screen */
-    const mode = gl.TRIANGLES;
-    const first = 0;
-    const count = 18;
-    gl.drawArrays(mode, first, count);
+        mat4.rotate(modelViewMatrix, modelViewMatrix, cubeRotation, [0, 0, 1]);
+        mat4.rotate(modelViewMatrix, modelViewMatrix, cubeRotation, [0, 1, 0]);
 
+        const projectionMatrx = mat4.create();
+        const fieldOfView = 45 * Math.PI / 180;
+        const aspect = canvas.clientWidth / canvas.clientHeight;
+        const zNear = 0.1;
+        const zFar = 100.0;
+        mat4.perspective(projectionMatrx, fieldOfView, aspect, zNear, zFar);
+
+        /* Connect the attribute with the vertex shader */
+        const modelViewMatrixLocation = gl.getUniformLocation(program, "uModelViewMatrix");
+        gl.uniformMatrix4fv(modelViewMatrixLocation, false, modelViewMatrix);
+
+        const projectionMatrixLocation = gl.getUniformLocation(program, "uProjectionMatrix");
+        gl.uniformMatrix4fv(projectionMatrixLocation, false, projectionMatrx);
+
+        const positionAttributeLocation = gl.getAttribLocation(program, "aPosition");
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(positionAttributeLocation);
+
+        const colorAttributeLocation = gl.getAttribLocation(program, "aVertexColor");
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.vertexAttribPointer(colorAttributeLocation, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(colorAttributeLocation);
+
+        /* Drawing */
+        gl.clearColor(1,1,1,1);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        /* Draw the points to the screen */
+        const mode = gl.TRIANGLES;
+        const first = 0;
+        const count = 18;
+        gl.drawArrays(mode, first, count);
+        cubeRotation += deltaTime;
+        requestAnimationFrame(render);
+    }
+
+    requestAnimationFrame(render);
 }
